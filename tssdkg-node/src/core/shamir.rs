@@ -12,6 +12,33 @@ pub struct Share {
     pub y: u64,
 }
 
+pub type Polynomial = Vec<i64>;
+
+pub fn evaluate_polynomial(poly: &Polynomial, x: i64) -> i64 {
+    let mut result = 0;
+    let mut power = 1;
+
+    for &coeff in poly {
+        result += coeff * power;
+        power *= x;
+    }
+
+    result
+}
+
+
+pub fn generate_zero_polynomial(degree: usize) -> Polynomial {
+    let mut rng = rand::thread_rng();
+
+    let mut poly = vec![0]; // constant term = 0
+
+    for _ in 0..degree {
+        poly.push(rng.gen_range(1..100)); // random coefficients
+    }
+
+    poly
+}
+
 /// Split a secret into n shares where k are needed to reconstruct
 pub fn generate_shares(
     secret: u64,
