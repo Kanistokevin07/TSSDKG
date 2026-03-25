@@ -4,6 +4,11 @@ use crate::network::message::NodeId;
 pub struct PeerState {
     pub id: NodeId,
     pub reputation: i32,
+    pub invalid_shares: u32,
+    pub total_messages: u32,
+    pub replay_count: u32,
+    pub valid_shares: u32,
+    pub epochs_participated: u32,
 }
 
 impl PeerState {
@@ -11,6 +16,8 @@ impl PeerState {
         Self {
             id,
             reputation: 100,
+            invalid_shares: 0,
+            total_messages: 0,
         }
     }
 

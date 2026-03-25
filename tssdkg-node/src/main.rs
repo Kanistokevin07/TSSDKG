@@ -10,6 +10,7 @@ use crate::core::signature::PartialSignature;
 
 use network::node::Node;
 use network::message::{Message, Payload};
+use network::simulation::Simulation;
 
 mod core;
 mod security;
@@ -33,6 +34,13 @@ fn main() {
 
         node.handle_message(msg);
     }
+
+    let mut sim = Simulation::new(5, 3);
+
+    println!("🚀 Starting multi-node simulation...\n");
+
+    // run attack scenario
+    sim.run_round(2);
 
     /*println!("TSSDKG Node starting...");
     println!("Version: 0.1.0");

@@ -1,11 +1,11 @@
-use crate::security::epoch::Epoch;
+use crate::core::feldman_vss::FeldmanShare;
 
 pub type NodeId = u32;
 
 #[derive(Debug, Clone)]
 pub enum Payload {
-    Share(Vec<u8>),
-    Commitment(Vec<u8>),
+    Share(FeldmanShare),   // 🔥 REAL SHARE
+    Commitment(Vec<u64>),
     Signature(Vec<u8>),
     Ping,
 }
@@ -13,6 +13,6 @@ pub enum Payload {
 #[derive(Debug, Clone)]
 pub struct Message {
     pub from: NodeId,
-    pub epoch: Epoch,
+    pub epoch: u64,
     pub payload: Payload,
 }
