@@ -1,12 +1,17 @@
 use crate::network::node::Node;
 use crate::network::message::{Message, Payload};
 use crate::core::feldman_vss::tamper_share;
+use crate::security::resharing::ResharingEngine;
 use crate::core::feldman_vss::generate_verified_shares;
 use crate::ml::export::export_metrics;
 use rand::Rng;
+use crate::security::epoch::EpochManager;
+use std::collections::HashSet;
 
 pub struct Simulation {
     pub nodes: Vec<Node>,
+    pub epoch_mgr: EpochManager,
+    pub threshold: usize,
 }
 
 impl Simulation {
@@ -30,9 +35,14 @@ impl Simulation {
                         .insert(peer_id, crate::security::reputation::PeerState::new(peer_id));
                 }
             }
+            
         }
-
-        Self { nodes }
+        Self {
+            nodes,
+            epoch_mgr: EpochManager::new(),
+            threshold,
+        }
+        
     }
     pub fn pick_attackers(&self, k: usize) -> Vec<u32> {
         let mut rng = rand::thread_rng();
@@ -58,7 +68,7 @@ impl Simulation {
     }
 
     pub fn simulate_honest_traffic(&mut self) {
-        println!("\n🤝 Simulating honest traffic...\n");
+        println!("\n Simulating honest traffic...\n");
 
         let shares = generate_verified_shares(
             12345,
@@ -69,38 +79,38 @@ impl Simulation {
         );
 
         for i in 0..self.nodes.len() {
-    let sender_id = self.nodes[i].id;
+            let sender_id = self.nodes[i].id;
 
-    for j in 0..self.nodes.len() {
-        if i != j {
-            let mut all_shares = Vec::new();
+            for j in 0..self.nodes.len() {
+                if i != j {
+                    let mut all_shares = Vec::new();
 
-            for _ in 0..self.nodes.len() {
-                all_shares.push(generate_verified_shares(
-                    12345,
-                    self.nodes.len(),
-                    3,
-                    crate::core::feldman_vss::Q_ORDER,
-                    crate::core::feldman_vss::P_MODULUS,
-                ));
+                    for _ in 0..self.nodes.len() {
+                        all_shares.push(generate_verified_shares(
+                            12345,
+                            self.nodes.len(),
+                            3,
+                            crate::core::feldman_vss::Q_ORDER,
+                            crate::core::feldman_vss::P_MODULUS,
+                        ));
+                    }
+                    let good_share = shares[(i) as usize].clone();
+
+                    let msg = Message {
+                        from: sender_id,
+                        epoch: 0,
+                        payload: Payload::Share(good_share),
+                    };
+
+                    self.nodes[j].handle_message(msg);
+                }
             }
-            let good_share = shares[(i) as usize].clone();
-
-            let msg = Message {
-                from: sender_id,
-                epoch: 0,
-                payload: Payload::Share(good_share),
-            };
-
-            self.nodes[j].handle_message(msg);
         }
-    }
-}
     }
 
     /// Simulate malicious node sending bad shares
     pub fn simulate_attack(&mut self, attacker_id: u32) {
-        println!("\n🚨 Node {} launching attack...\n", attacker_id);
+        println!("\n Node {} launching attack...\n", attacker_id);
 
         // Generate REAL valid shares first
         let shares = generate_verified_shares(
@@ -144,20 +154,89 @@ impl Simulation {
     
 
         // Step 3: each node decides
-        println!("\n🧠 Evaluating network...\n");
+        println!("\n Evaluating network...\n");
 
         for node in self.nodes.iter_mut() {
             node.evaluate_network();
-            node.tick();
+        }
+        // ------------------------
+// GLOBAL AGGREGATION LAYER
+// ------------------------
+
+        let mut malicious_votes: std::collections::HashMap<u32, usize> = std::collections::HashMap::new();
+
+        // Count how many nodes flagged each peer
+        for node in &self.nodes {
+            for (peer_id, peer) in &node.peers {
+                if peer.is_malicious() {
+                    *malicious_votes.entry(*peer_id).or_insert(0) += 1;
+                }
+            }
         }
 
-        // Step 4: resharing happens
-        println!("\n🔁 Performing resharing...\n");
+        let mut globally_malicious = std::collections::HashSet::new();
 
-        for node in self.nodes.iter_mut() {
-            node.perform_resharing();
+        for (peer_id, votes) in malicious_votes {
+            if votes >= self.threshold {
+                println!("🌍 Global consensus: Node {} is malicious ({} votes)", peer_id, votes);
+                globally_malicious.insert(peer_id);
+            }
         }
+        let mut malicious_peers = HashSet::new();
+
+        for node in &self.nodes {
+            for (peer_id, peer) in &node.peers {
+                if peer.is_malicious() {
+                    malicious_peers.insert(*peer_id);
+                }
+            }
+        }
+
+        let resharing_needed = !globally_malicious.is_empty();
+
+        if resharing_needed {
+            println!("\n🌐 Global resharing triggered...\n");
+
+            // ✅ Step 1: compute epoch ONCE
+            let new_epoch = self.epoch_mgr.next();
+
+            println!("\n🌐 Global resharing triggered → epoch {}\n", new_epoch);
+
+            // ✅ Step 2: resharing
+            for node in self.nodes.iter_mut() {
+                let (new_share, _) =
+                    ResharingEngine::trigger(node.share, node.threshold, &node.epoch_mgr);
+
+                node.share = new_share;
+                node.needs_resharing = false;
+                node.last_reshared_epoch = new_epoch;
+
+                println!("🔁 Node {} reshared → epoch {}", node.id, new_epoch);
+            }
+
+            // ✅ Step 3: reset
+            for node in self.nodes.iter_mut() {
+                node.reset_epoch_state();
+            }
+        }
+
+        
 
         export_metrics(&self.nodes);
+        std::process::Command::new("python")
+        .arg("src/ml/analyze.py")
+        .status()
+        .expect("failed to run ML");
+
+        let ml_results = crate::ml::inference::load_ml_results();
+        for node in self.nodes.iter_mut() {
+            node.apply_ml_results(&ml_results);
+        }
+    }
+
+    pub fn reset_epoch_state(&mut self) {
+        for node in self.nodes.iter_mut() {
+            node.reset_epoch_state(); // you define this
+        }
     }
 }

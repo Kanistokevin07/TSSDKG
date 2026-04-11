@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+/*#![allow(dead_code)]
 #![allow(unused)]
 
 // Explicitly import the items the compiler is missing
@@ -112,4 +112,91 @@ pub fn run_full_dkg_demo() {
 
     println!("\n[Architect Note]: This signature can now be verified by anyone ");
     println!("using ONLY the Group Public Key ({})", nodes[0].public_key);
+
+        run_full_demo();
+}
+
+    // Add these helper functions for clean terminal output
+
+fn print_header(text: &str) {
+    let border = "═".repeat(text.len() + 4);
+    println!("\n╔{}╗", border);
+    println!("║  {}  ║", text);
+    println!("╚{}╝\n", border);
+}
+
+fn print_epoch(epoch: u32) {
+    println!("\n{}", "─".repeat(50));
+    println!("  EPOCH {}", epoch);
+    println!("{}", "─".repeat(50));
+}
+
+fn print_reputation(nodes: &[(u32, i32, bool)]) {
+    println!("\nNode Reputation Scores:");
+    for (id, score, excluded) in nodes {
+        if *excluded {
+            println!("  Node {}: ---        ❌ EXCLUDED", id);
+        } else {
+            let bar = "█".repeat((*score / 10) as usize);
+            let empty = "░".repeat((10 - score / 10) as usize);
+            println!("  Node {}: {}{}  {}/100", id, bar, empty, score);
+        }
+    }
+}
+
+fn print_ml_result(node_id: u32, score: f64, confidence: f64) {
+    println!("\n  🤖 ML Isolation Forest — Node {}:", node_id);
+    println!("     Anomaly Score:  {:.3}", score);
+    println!("     Confidence:     {:.1}%", confidence * 100.0);
+    if confidence > 0.7 {
+        println!("     Decision:       ANOMALOUS ⚠");
+    } else {
+        println!("     Decision:       NORMAL ✓");
+    }
+}
+
+pub fn run_full_demo() {
+    print_header("TSSDKG — Adaptive Threshold Cryptography");
+
+    println!("Novel contributions being demonstrated:");
+    println!("  1. Reactive resharing (triggered by attack, not timer)");
+    println!("  2. Two-layer detection (cryptographic + ML behavioral)");
+    println!("  3. Probabilistic reputation scoring");
+
+    // Add a small delay between sections
+    // so mentor can read each part
+    std::thread::sleep(std::time::Duration::from_millis(500));
+
+    // Scene 1: Normal operation
+    print_epoch(1);
+    // ... your existing normal demo code
+
+    std::thread::sleep(std::time::Duration::from_millis(1000));
+
+    // Scene 2: Attack
+    print_epoch(2);
+    println!("  Injecting Byzantine attack on Node 3...");
+    // ... your attack detection code
+
+    std::thread::sleep(std::time::Duration::from_millis(1000));
+
+    // Scene 3: Self healing
+    print_epoch(3);
+    println!("  ⚡ REACTIVE RESHARING TRIGGERED");
+    // ... your resharing code
+
+    print_header("DEMO COMPLETE — Zero Human Intervention Required");
+}*/
+
+#![allow(dead_code)]
+#![allow(unused)]
+
+mod core;
+mod security;
+mod network;
+mod ml;
+mod demo;
+
+fn main() {
+    demo::run_full_demo();
 }

@@ -1,6 +1,6 @@
-node_id,invalid_ratio,total_messages
-3,0,4
-5,0,4
-1,0,4
-2,0.2727272727272727,44
-4,0,4
+node_id,invalid_ratio,validity_rate,total_messages,replay_count,epochs_participated
+5,0,0,0,0,24
+1,0,0,0,0,4
+3,0,0,0,0,4
+4,0,0,0,0,4
+2,0,0,0,0,24

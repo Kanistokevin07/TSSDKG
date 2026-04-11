@@ -18,6 +18,9 @@ impl PeerState {
             reputation: 100,
             invalid_shares: 0,
             total_messages: 0,
+            replay_count: 0,
+            valid_shares: 0,
+            epochs_participated: 0,
         }
     }
 
@@ -36,6 +39,11 @@ impl PeerState {
     }
 
     pub fn is_malicious(&self) -> bool {
-        self.reputation == 0
+        self.reputation <= 0
+    }
+
+    pub fn reset_epoch_metrics(&mut self) {
+        self.invalid_shares = 0;
+        self.total_messages = 0;
     }
 }

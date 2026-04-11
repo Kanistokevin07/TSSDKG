@@ -20,4 +20,8 @@ impl EpochManager {
     pub fn next(&self) -> Epoch {
         self.current.fetch_add(1, Ordering::SeqCst) + 1
     }
+
+    pub fn set(&self, epoch: u64) {
+        self.current.store(epoch, Ordering::SeqCst);
+    }
 }
